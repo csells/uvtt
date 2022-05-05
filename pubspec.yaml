@@ -13,6 +13,7 @@ dependencies:
   file_selector: ^0.8.4+1
   package_info_plus: ^1.4.2
   url_launcher: ^6.1.0
+  path: ^1.8.1
 
 dev_dependencies:
   flutter_test:

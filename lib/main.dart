@@ -1,11 +1,9 @@
-// from: https://arkenforge.com/universal-vtt-files/
-import 'dart:convert';
-import 'dart:typed_data';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'universal_vtt_file.dart';
+import 'package:path/path.dart' as path;
 
 void main() => runApp(const App());
 
@@ -30,7 +28,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  UniversalVttFile? _file;
+  UniversalVttFile? _uvtt;
   String? _error;
 
   @override
@@ -52,27 +50,30 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
         drawer: Drawer(
-          child: _error == null && _file != null
+          child: _error == null && _uvtt != null
               ? Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: ListView(
                     children: [
-                      DrawerHeader(
-                        padding: const EdgeInsets.all(0),
-                        child: SelectableText(_file!.filename),
+                      Text(
+                        _uvtt!.filename,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      SelectableText('format: ${_file!.format}'),
-                      SelectableText(
-                        'software: ${_file!.software.isNotEmpty ? _file!.software : 'unknown'}',
+                      Text('format: ${_uvtt!.format}'),
+                      Text(
+                        'software: ${_uvtt!.software.isNotEmpty ? _uvtt!.software : 'unknown'}',
                       ),
-                      SelectableText(
-                        'creator: ${_file!.creator.isNotEmpty ? _file!.creator : 'unknown'}',
+                      Text(
+                        'creator: ${_uvtt!.creator.isNotEmpty ? _uvtt!.creator : 'unknown'}',
                       ),
-                      SelectableText(
-                        'map size: ${_file!.resolution.mapSize.x} x ${_file!.resolution.mapSize.y} (squares)',
+                      Text(
+                        'image size: ${_uvtt!.parsedImage!.width} x ${_uvtt!.parsedImage!.height} (pixels)',
                       ),
-                      SelectableText(
-                        'square size: ${_file!.resolution.pixelsPerGrid} x ${_file!.resolution.pixelsPerGrid} (pixels)',
+                      Text(
+                        'square size: ${_uvtt!.resolution.pixelsPerGrid} x ${_uvtt!.resolution.pixelsPerGrid} (pixels)',
+                      ),
+                      Text(
+                        'map size: ${_uvtt!.resolution.mapSize.x} x ${_uvtt!.resolution.mapSize.y} (squares)',
                       ),
                     ],
                   ),
@@ -93,7 +94,7 @@ class _HomePageState extends State<HomePage> {
                       onPressed: _onOpenFile,
                       child: const Text('Open Universal VTT File'),
                     ),
-                    if (_file != null)
+                    if (_uvtt != null)
                       OutlinedButton(
                         onPressed: _onExtractImage,
                         child: const Text('Extract Image'),
@@ -112,12 +113,12 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
-            if (_error == null && _file != null)
+            if (_error == null && _uvtt != null)
               Expanded(
                 child: Center(
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
-                    child: Image.memory(_file!.imageBytes),
+                    child: RawImage(image: _uvtt!.parsedImage),
                   ),
                 ),
               ),
@@ -128,7 +129,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _onOpenFile() async {
     final XTypeGroup typeGroup = XTypeGroup(
       label: 'Universal VTT Files',
-      extensions: <String>['dd2vtt', 'df2vtt', 'uvtt'],
+      extensions: ['dd2vtt', 'df2vtt', 'uvtt'],
     );
     final file = await openFile(acceptedTypeGroups: <XTypeGroup>[typeGroup]);
 
@@ -137,22 +138,19 @@ class _HomePageState extends State<HomePage> {
 
     try {
       final json = await file.readAsString();
+      final uvtt = await UniversalVttFile.fromRawJsonFile(
+        filename: file.name,
+        rawJson: json,
+      );
+
       setState(() {
         _error = null;
-        _file = UniversalVttFile.fromRawJsonFile(
-          filename: file.name,
-          rawJson: json,
-        );
-
-        // check the image data so we get an error now instead of later
-        final bytes = _file!.imageBytes;
-        // ignore: avoid_print
-        print(bytes[0]); // avoid the optimizer
+        _uvtt = uvtt;
       });
     } on Exception catch (ex) {
       setState(() {
         _error = ex.toString();
-        _file = null;
+        _uvtt = null;
       });
     }
   }
@@ -174,23 +172,24 @@ class _HomePageState extends State<HomePage> {
   Future<void> _onExtractImage() async {
     final XTypeGroup typeGroup = XTypeGroup(
       label: 'Image Files',
-      extensions: <String>['png'],
+      extensions: ['png'],
     );
-    const name = "vtt-image.png";
-    final path = await getSavePath(
+
+    final name = path.setExtension(_uvtt!.filename, '.png');
+    final pathname = await getSavePath(
       acceptedTypeGroups: [typeGroup],
       suggestedName: name,
     );
 
     // user canceled the operation
-    if (path == null) return;
+    if (pathname == null) return;
 
     const mimeType = "image/png";
     final file = XFile.fromData(
-      _file!.imageBytes,
+      _uvtt!.parsedImageBytes!,
       name: name,
       mimeType: mimeType,
     );
-    await file.saveTo(path);
+    await file.saveTo(pathname);
   }
 }

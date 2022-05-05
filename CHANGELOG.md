@@ -2,6 +2,7 @@
 
 ### 0.6.0
 - showing metadata
+- extracted image name matches file name
 
 ### 0.5.0
 - extracting the image

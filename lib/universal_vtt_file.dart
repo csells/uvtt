@@ -5,10 +5,13 @@
 
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 class UniversalVttFile {
   UniversalVttFile({
     required this.filename,
+    required this.parsedImage,
+    required this.parsedImageBytes,
     required this.format,
     required this.resolution,
     required this.lineOfSight,
@@ -30,22 +33,41 @@ class UniversalVttFile {
   final String image;
   final String software;
   final String creator;
-  Uint8List? _imageBytes;
+  final ui.Image? parsedImage;
+  final Uint8List? parsedImageBytes;
 
-  factory UniversalVttFile.fromRawJsonFile({
+  static Future<UniversalVttFile> fromRawJsonFile({
     required String filename,
     required String rawJson,
-  }) =>
-      UniversalVttFile.fromJson(json.decode(rawJson), filename: filename);
+  }) async {
+    final map = json.decode(rawJson);
+    final base64image = map['image'] as String? ?? '';
+    final parsedImageBytes =
+        base64image.isNotEmpty ? base64Decode(base64image) : null;
+    final parsedImage = parsedImageBytes == null
+        ? null
+        : await _imageFromBytes(parsedImageBytes);
+
+    return UniversalVttFile.fromJson(
+      map,
+      filename: filename,
+      parsedImage: parsedImage,
+      parsedImageBytes: parsedImageBytes,
+    );
+  }
 
   String toRawJson() => json.encode(toJson());
 
   factory UniversalVttFile.fromJson(
     Map<String, dynamic> json, {
     String filename = '',
+    ui.Image? parsedImage,
+    Uint8List? parsedImageBytes,
   }) =>
       UniversalVttFile(
         filename: filename,
+        parsedImage: parsedImage,
+        parsedImageBytes: parsedImageBytes,
         format: json['format'].toDouble(),
         resolution: Resolution.fromJson(json['resolution']),
         lineOfSight: List<List<MapOrigin>>.from(json['line_of_sight'].map(
@@ -72,7 +94,11 @@ class UniversalVttFile {
         'image': image,
       };
 
-  Uint8List get imageBytes => _imageBytes ??= base64Decode(image);
+  static Future<ui.Image> _imageFromBytes(Uint8List bytes) async {
+    final codec = await ui.instantiateImageCodec(bytes);
+    final frame = await codec.getNextFrame();
+    return frame.image;
+  }
 }
 
 class Environment {
