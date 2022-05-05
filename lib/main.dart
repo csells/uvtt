@@ -56,9 +56,19 @@ class _HomePageState extends State<HomePage> {
             Center(
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: OutlinedButton(
-                  onPressed: _onOpenFile,
-                  child: const Text('Open Universal VTT File'),
+                child: ButtonBar(
+                  alignment: MainAxisAlignment.center,
+                  children: [
+                    OutlinedButton(
+                      onPressed: _onOpenFile,
+                      child: const Text('Open Universal VTT File'),
+                    ),
+                    if (_image != null)
+                      OutlinedButton(
+                        onPressed: _onExtractImage,
+                        child: const Text('Extract Image'),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -90,15 +100,12 @@ class _HomePageState extends State<HomePage> {
       label: 'Universal VTT Files',
       extensions: <String>['dd2vtt', 'df2vtt', 'uvtt'],
     );
+    final file = await openFile(acceptedTypeGroups: <XTypeGroup>[typeGroup]);
 
-    final List<XFile> files =
-        await openFiles(acceptedTypeGroups: <XTypeGroup>[typeGroup]);
-
-    // Operation was canceled by the user.
-    if (files.isEmpty) return;
+    // operation was canceled by user
+    if (file == null) return;
 
     try {
-      final XFile file = files[0];
       final json = await file.readAsString();
       final uvtt = UniversalVttFile.fromRawJson(json);
       setState(() {
@@ -125,5 +132,24 @@ class _HomePageState extends State<HomePage> {
       applicationVersion: 'v${packageInfo.version}',
       applicationLegalese: 'Copyright © 2022, Sells Brothers, Inc.',
     );
+  }
+
+  Future<void> _onExtractImage() async {
+    final XTypeGroup typeGroup = XTypeGroup(
+      label: 'Image Files',
+      extensions: <String>['png'],
+    );
+    const name = "vtt-image.png";
+    final path = await getSavePath(
+      acceptedTypeGroups: [typeGroup],
+      suggestedName: name,
+    );
+
+    // user canceled the operation
+    if (path == null) return;
+
+    const mimeType = "image/png";
+    final file = XFile.fromData(_image!, name: name, mimeType: mimeType);
+    await file.saveTo(path);
   }
 }

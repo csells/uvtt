@@ -1,5 +1,8 @@
 # Changelog
 
+### 0.5.0
+- extracting the image
+
 ### 0.4.0
 - about box
 - link to GitHub repo
