@@ -1,5 +1,8 @@
 # Changelog
 
+### 0.7.0
+- convert to PNG on extract
+
 ### 0.6.0
 - showing metadata
 - extracted image name matches file name

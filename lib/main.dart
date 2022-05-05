@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -185,11 +187,16 @@ class _HomePageState extends State<HomePage> {
     if (pathname == null) return;
 
     const mimeType = "image/png";
+    final data = await _uvtt!.parsedImage!.toByteData(
+      format: ImageByteFormat.png,
+    );
+
     final file = XFile.fromData(
-      _uvtt!.parsedImageBytes!,
+      data!.buffer.asUint8List(),
       name: name,
       mimeType: mimeType,
     );
+
     await file.saveTo(pathname);
   }
 }

@@ -11,7 +11,6 @@ class UniversalVttFile {
   UniversalVttFile({
     required this.filename,
     required this.parsedImage,
-    required this.parsedImageBytes,
     required this.format,
     required this.resolution,
     required this.lineOfSight,
@@ -34,7 +33,6 @@ class UniversalVttFile {
   final String software;
   final String creator;
   final ui.Image? parsedImage;
-  final Uint8List? parsedImageBytes;
 
   static Future<UniversalVttFile> fromRawJsonFile({
     required String filename,
@@ -52,7 +50,6 @@ class UniversalVttFile {
       map,
       filename: filename,
       parsedImage: parsedImage,
-      parsedImageBytes: parsedImageBytes,
     );
   }
 
@@ -62,12 +59,10 @@ class UniversalVttFile {
     Map<String, dynamic> json, {
     String filename = '',
     ui.Image? parsedImage,
-    Uint8List? parsedImageBytes,
   }) =>
       UniversalVttFile(
         filename: filename,
         parsedImage: parsedImage,
-        parsedImageBytes: parsedImageBytes,
         format: json['format'].toDouble(),
         resolution: Resolution.fromJson(json['resolution']),
         lineOfSight: List<List<MapOrigin>>.from(json['line_of_sight'].map(
