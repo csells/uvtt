@@ -30,7 +30,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  Uint8List? _image;
+  UniversalVttFile? _file;
   String? _error;
 
   @override
@@ -51,6 +51,36 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
+        drawer: Drawer(
+          child: _error == null && _file != null
+              ? Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: ListView(
+                    children: [
+                      DrawerHeader(
+                        padding: const EdgeInsets.all(0),
+                        child: SelectableText(_file!.filename),
+                      ),
+                      SelectableText('format: ${_file!.format}'),
+                      SelectableText(
+                        'software: ${_file!.software.isNotEmpty ? _file!.software : 'unknown'}',
+                      ),
+                      SelectableText(
+                        'creator: ${_file!.creator.isNotEmpty ? _file!.creator : 'unknown'}',
+                      ),
+                      SelectableText(
+                        'map size: ${_file!.resolution.mapSize.x} x ${_file!.resolution.mapSize.y} (squares)',
+                      ),
+                      SelectableText(
+                        'square size: ${_file!.resolution.pixelsPerGrid} x ${_file!.resolution.pixelsPerGrid} (pixels)',
+                      ),
+                    ],
+                  ),
+                )
+              : const DrawerHeader(
+                  child: Text('no open file'),
+                ),
+        ),
         body: Column(
           children: [
             Center(
@@ -63,7 +93,7 @@ class _HomePageState extends State<HomePage> {
                       onPressed: _onOpenFile,
                       child: const Text('Open Universal VTT File'),
                     ),
-                    if (_image != null)
+                    if (_file != null)
                       OutlinedButton(
                         onPressed: _onExtractImage,
                         child: const Text('Extract Image'),
@@ -82,12 +112,12 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
-            if (_error == null && _image != null)
+            if (_error == null && _file != null)
               Expanded(
                 child: Center(
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
-                    child: Image.memory(_image!),
+                    child: Image.memory(_file!.imageBytes),
                   ),
                 ),
               ),
@@ -107,15 +137,22 @@ class _HomePageState extends State<HomePage> {
 
     try {
       final json = await file.readAsString();
-      final uvtt = UniversalVttFile.fromRawJson(json);
       setState(() {
         _error = null;
-        _image = base64Decode(uvtt.image);
+        _file = UniversalVttFile.fromRawJsonFile(
+          filename: file.name,
+          rawJson: json,
+        );
+
+        // check the image data so we get an error now instead of later
+        final bytes = _file!.imageBytes;
+        // ignore: avoid_print
+        print(bytes[0]); // avoid the optimizer
       });
     } on Exception catch (ex) {
       setState(() {
         _error = ex.toString();
-        _image = null;
+        _file = null;
       });
     }
   }
@@ -149,7 +186,11 @@ class _HomePageState extends State<HomePage> {
     if (path == null) return;
 
     const mimeType = "image/png";
-    final file = XFile.fromData(_image!, name: name, mimeType: mimeType);
+    final file = XFile.fromData(
+      _file!.imageBytes,
+      name: name,
+      mimeType: mimeType,
+    );
     await file.saveTo(path);
   }
 }

@@ -4,9 +4,11 @@
 //     final universalVttFile = UniversalVttFile.fromRawJson(jsonString);
 
 import 'dart:convert';
+import 'dart:typed_data';
 
 class UniversalVttFile {
   UniversalVttFile({
+    required this.filename,
     required this.format,
     required this.resolution,
     required this.lineOfSight,
@@ -14,8 +16,11 @@ class UniversalVttFile {
     required this.lights,
     required this.environment,
     required this.image,
+    required this.software,
+    required this.creator,
   });
 
+  final String filename;
   final double format;
   final Resolution resolution;
   final List<List<MapOrigin>> lineOfSight;
@@ -23,14 +28,24 @@ class UniversalVttFile {
   final List<Light> lights;
   final Environment environment;
   final String image;
+  final String software;
+  final String creator;
+  Uint8List? _imageBytes;
 
-  factory UniversalVttFile.fromRawJson(String str) =>
-      UniversalVttFile.fromJson(json.decode(str));
+  factory UniversalVttFile.fromRawJsonFile({
+    required String filename,
+    required String rawJson,
+  }) =>
+      UniversalVttFile.fromJson(json.decode(rawJson), filename: filename);
 
   String toRawJson() => json.encode(toJson());
 
-  factory UniversalVttFile.fromJson(Map<String, dynamic> json) =>
+  factory UniversalVttFile.fromJson(
+    Map<String, dynamic> json, {
+    String filename = '',
+  }) =>
       UniversalVttFile(
+        filename: filename,
         format: json['format'].toDouble(),
         resolution: Resolution.fromJson(json['resolution']),
         lineOfSight: List<List<MapOrigin>>.from(json['line_of_sight'].map(
@@ -40,10 +55,14 @@ class UniversalVttFile {
         lights: List<Light>.from(json['lights'].map((x) => Light.fromJson(x))),
         environment: Environment.fromJson(json['environment']),
         image: json['image'],
+        software: json['software'] ?? "",
+        creator: json['creator'] ?? "",
       );
 
   Map<String, dynamic> toJson() => {
         'format': format,
+        'software': software,
+        'creator': creator,
         'resolution': resolution.toJson(),
         'line_of_sight': List<dynamic>.from(lineOfSight
             .map((x) => List<dynamic>.from(x.map((x) => x.toJson())))),
@@ -52,6 +71,8 @@ class UniversalVttFile {
         'environment': environment.toJson(),
         'image': image,
       };
+
+  Uint8List get imageBytes => _imageBytes ??= base64Decode(image);
 }
 
 class Environment {
@@ -70,7 +91,7 @@ class Environment {
 
   factory Environment.fromJson(Map<String, dynamic> json) => Environment(
         bakedLighting: json['baked_lighting'],
-        ambientLight: json['ambient_light'],
+        ambientLight: json['ambient_light'] ?? '',
       );
 
   Map<String, dynamic> toJson() => {
