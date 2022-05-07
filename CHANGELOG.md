@@ -1,5 +1,8 @@
 # Changelog
 
+### 0.8.0
+- add analytics
+
 ### 0.7.0
 - convert to PNG on extract
 

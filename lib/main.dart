@@ -1,13 +1,21 @@
 import 'dart:ui';
 
 import 'package:file_selector/file_selector.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'firebase_options.dart';
 import 'universal_vtt_file.dart';
 import 'package:path/path.dart' as path;
+import 'package:firebase_analytics/firebase_analytics.dart';
 
-void main() => runApp(const App());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await FirebaseAnalytics.instance.logAppOpen();
+  runApp(const App());
+}
 
 class App extends StatelessWidget {
   static const title = 'Universal VTT File Reader';
